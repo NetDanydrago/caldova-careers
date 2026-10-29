@@ -50,6 +50,14 @@ describe('formatPostedDate', () => {
     });
 });
 
+/**
+ * Build a job fixture with a specific department and location.
+ *
+ * @param slug - Role slug.
+ * @param department - Department name.
+ * @param location - Role location.
+ * @returns A complete `Job` fixture.
+ */
 function makeRole(slug: string, department: string, location: string): Job {
     return { ...makeJob(slug, '2027-01-01'), department, location };
 }
@@ -75,6 +83,7 @@ describe('getDepartments / getLocations', () => {
 });
 
 describe('filterJobs', () => {
+    /** Extract slugs so assertions stay readable. */
     const slugs = (jobs: Job[]): string[] => jobs.map((job) => job.slug);
 
     it('filters by department only', () => {

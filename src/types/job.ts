@@ -24,6 +24,8 @@ export interface Job {
 
 /** Optional role filters; an empty or missing value means "no constraint". */
 export interface JobFilters {
+    /** Exact department name to match. */
     department?: string;
+    /** Exact location to match. */
     location?: string;
 }

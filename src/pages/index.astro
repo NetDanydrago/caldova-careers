@@ -69,11 +69,22 @@ const locations = getLocations(jobs);
   const emptyState = document.querySelector<HTMLElement>('[data-testid="filtered-empty-state"]');
   const count = document.querySelector<HTMLElement>('[data-testid="roles-count"]');
 
+  /**
+   * Select an option only when it exists in the control, otherwise reset it.
+   *
+   * @param select - The select element to update.
+   * @param value - Requested option value, typically from the URL query.
+   */
   function selectIfPresent(select: HTMLSelectElement, value: string | null): void {
     const known = Array.from(select.options).some((option) => option.value === value);
     select.value = known && value ? value : '';
   }
 
+  /**
+   * Show or hide role cards for the selected filters and update the count.
+   *
+   * @param updateUrl - Whether to sync the selected filters to the URL query.
+   */
   function applyFilters(updateUrl: boolean): void {
     if (!departmentSelect || !locationSelect || !grid || !emptyState || !count) return;
     const filters = { department: departmentSelect.value, location: locationSelect.value };
@@ -103,7 +114,10 @@ const locations = getLocations(jobs);
     const params = new URLSearchParams(location.search);
     selectIfPresent(departmentSelect, params.get('department'));
     selectIfPresent(locationSelect, params.get('location'));
-    applyFilters(false);
+    const hadInvalidValue =
+      (params.has('department') && params.get('department') !== departmentSelect.value) ||
+      (params.has('location') && params.get('location') !== locationSelect.value);
+    applyFilters(hadInvalidValue);
 
     departmentSelect.addEventListener('change', () => applyFilters(true));
     locationSelect.addEventListener('change', () => applyFilters(true));

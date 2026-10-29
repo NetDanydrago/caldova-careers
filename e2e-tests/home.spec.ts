@@ -113,6 +113,15 @@ test.describe('Open roles listing', () => {
                 expect(text.trim()).toBe(department);
             }
         });
+
+        test('ignores an unknown filter value from the URL and cleans the URL', async ({ page }) => {
+            await page.goto(`/?department=${encodeURIComponent(department)}&location=bogus`);
+            await expect(page.getByTestId('department-filter')).toHaveValue(department);
+            await expect(page.getByTestId('location-filter')).toHaveValue('');
+            await expect.poll(() => new URL(page.url()).search).toBe(
+                `?${new URLSearchParams({ department }).toString()}`,
+            );
+        });
     });
 
     test('has no automatically detectable accessibility violations', async ({ page }) => {
