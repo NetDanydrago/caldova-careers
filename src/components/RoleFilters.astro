@@ -1,0 +1,42 @@
+---
+interface Props {
+    departments: string[];
+    locations: string[];
+}
+
+const { departments, locations } = Astro.props;
+const selectClass =
+    'w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500';
+---
+
+<form
+    class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+    data-testid="role-filters"
+    aria-label="Filter roles"
+>
+    <div>
+        <label for="department-filter" class="mb-1 block text-sm font-medium text-slate-300">
+            Department
+        </label>
+        <select id="department-filter" name="department" class={selectClass} data-testid="department-filter">
+            <option value="">All departments</option>
+            {departments.map((department) => <option value={department}>{department}</option>)}
+        </select>
+    </div>
+    <div>
+        <label for="location-filter" class="mb-1 block text-sm font-medium text-slate-300">
+            Location
+        </label>
+        <select id="location-filter" name="location" class={selectClass} data-testid="location-filter">
+            <option value="">All locations</option>
+            {locations.map((location) => <option value={location}>{location}</option>)}
+        </select>
+    </div>
+    <button
+        type="button"
+        class="rounded-lg border border-slate-600 px-4 py-2 font-medium text-slate-100 hover:border-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        data-testid="filters-reset"
+    >
+        Reset filters
+    </button>
+</form>

@@ -21,3 +21,9 @@ export interface Job {
     postedDate: string;
     summary: string;
 }
+
+/** Optional role filters; an empty or missing value means "no constraint". */
+export interface JobFilters {
+    department?: string;
+    location?: string;
+}
