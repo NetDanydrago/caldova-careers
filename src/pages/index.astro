@@ -3,7 +3,8 @@ import { getCollection } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
 import RoleCard from '../components/RoleCard.astro';
 import EmptyState from '../components/EmptyState.astro';
-import { sortByNewest } from '../lib/jobs';
+import RoleFilters from '../components/RoleFilters.astro';
+import { getDepartments, getLocations, sortByNewest } from '../lib/jobs';
 import type { Job } from '../types/job';
 
 export const prerender = true;
@@ -12,6 +13,8 @@ const entries = await getCollection('jobs');
 const jobs: Job[] = sortByNewest(
     entries.map((entry) => ({ slug: entry.id, ...entry.data })),
 );
+const departments = getDepartments(jobs);
+const locations = getLocations(jobs);
 ---
 
 <Layout title="Caldova Careers — Open roles">
@@ -29,12 +32,102 @@ const jobs: Job[] = sortByNewest(
     {jobs.length === 0 ? (
       <EmptyState text="There are no open roles right now. Check back soon." />
     ) : (
+      <RoleFilters departments={departments} locations={locations} />
+      <p class="mb-4 text-sm text-slate-400" role="status" aria-live="polite" data-testid="roles-count"></p>
       <div
         class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
         data-testid="roles-grid"
       >
         {jobs.map((job) => <RoleCard job={job} />)}
       </div>
+      <div hidden data-testid="filtered-empty-state">
+        <EmptyState text="No roles match your filters. Try a different combination or reset the filters." />
+        <div class="mt-4 text-center">
+          <button
+            type="button"
+            class="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+            data-testid="filtered-empty-reset"
+          >
+            Reset filters
+          </button>
+        </div>
+      </div>
     )}
   </div>
 </Layout>
+
+<script>
+  import { matchesFilters } from '../lib/jobs';
+
+  const departmentSelect = document.querySelector<HTMLSelectElement>('[data-testid="department-filter"]');
+  const locationSelect = document.querySelector<HTMLSelectElement>('[data-testid="location-filter"]');
+  const resetButtons = document.querySelectorAll<HTMLButtonElement>(
+    '[data-testid="filters-reset"], [data-testid="filtered-empty-reset"]',
+  );
+  const cards = document.querySelectorAll<HTMLElement>('[data-testid="role-card"]');
+  const grid = document.querySelector<HTMLElement>('[data-testid="roles-grid"]');
+  const emptyState = document.querySelector<HTMLElement>('[data-testid="filtered-empty-state"]');
+  const count = document.querySelector<HTMLElement>('[data-testid="roles-count"]');
+
+  /**
+   * Select an option only when it exists in the control, otherwise reset it.
+   *
+   * @param select - The select element to update.
+   * @param value - Requested option value, typically from the URL query.
+   */
+  function selectIfPresent(select: HTMLSelectElement, value: string | null): void {
+    const known = Array.from(select.options).some((option) => option.value === value);
+    select.value = known && value ? value : '';
+  }
+
+  /**
+   * Show or hide role cards for the selected filters and update the count.
+   *
+   * @param updateUrl - Whether to sync the selected filters to the URL query.
+   */
+  function applyFilters(updateUrl: boolean): void {
+    if (!departmentSelect || !locationSelect || !grid || !emptyState || !count) return;
+    const filters = { department: departmentSelect.value, location: locationSelect.value };
+    let visible = 0;
+    cards.forEach((card) => {
+      const show = matchesFilters(
+        { department: card.dataset.department ?? '', location: card.dataset.location ?? '' },
+        filters,
+      );
+      card.hidden = !show;
+      if (show) visible += 1;
+    });
+    grid.hidden = visible === 0;
+    emptyState.hidden = visible !== 0;
+    count.textContent = `Showing ${visible} of ${cards.length} roles`;
+
+    if (updateUrl) {
+      const params = new URLSearchParams();
+      if (filters.department) params.set('department', filters.department);
+      if (filters.location) params.set('location', filters.location);
+      const query = params.toString();
+      history.replaceState(null, '', query ? `?${query}` : location.pathname);
+    }
+  }
+
+  if (departmentSelect && locationSelect) {
+    const params = new URLSearchParams(location.search);
+    selectIfPresent(departmentSelect, params.get('department'));
+    selectIfPresent(locationSelect, params.get('location'));
+    const hadInvalidValue =
+      (params.has('department') && params.get('department') !== departmentSelect.value) ||
+      (params.has('location') && params.get('location') !== locationSelect.value);
+    applyFilters(hadInvalidValue);
+
+    departmentSelect.addEventListener('change', () => applyFilters(true));
+    locationSelect.addEventListener('change', () => applyFilters(true));
+    resetButtons.forEach((button) =>
+      button.addEventListener('click', () => {
+        departmentSelect.value = '';
+        locationSelect.value = '';
+        applyFilters(true);
+        departmentSelect.focus();
+      }),
+    );
+  }
+</script>

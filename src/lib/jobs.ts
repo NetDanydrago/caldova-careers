@@ -5,7 +5,7 @@
  * collection by the calling page) so they can be unit tested without the Astro
  * content runtime or a database.
  */
-import type { Job } from '../types/job';
+import type { Job, JobFilters } from '../types/job';
 
 /** Return jobs sorted by posted date, newest first (does not mutate input). */
 export function sortByNewest(jobs: Job[]): Job[] {
@@ -29,4 +29,61 @@ export function formatPostedDate(iso: string): string {
         day: 'numeric',
         timeZone: 'UTC',
     });
+}
+
+/**
+ * Return the unique values of a string list, sorted alphabetically.
+ *
+ * @param values - Strings that may contain duplicates.
+ * @returns A new array of unique values in alphabetical order.
+ */
+function uniqueSorted(values: string[]): string[] {
+    return [...new Set(values)].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Get the unique department names across the given jobs.
+ *
+ * @param jobs - Jobs to read departments from.
+ * @returns Department names sorted alphabetically.
+ */
+export function getDepartments(jobs: Job[]): string[] {
+    return uniqueSorted(jobs.map((job) => job.department));
+}
+
+/**
+ * Get the unique locations across the given jobs.
+ *
+ * @param jobs - Jobs to read locations from.
+ * @returns Locations sorted alphabetically.
+ */
+export function getLocations(jobs: Job[]): string[] {
+    return uniqueSorted(jobs.map((job) => job.location));
+}
+
+/**
+ * Check whether a role satisfies every non-empty filter (AND semantics).
+ *
+ * @param role - The department and location of the role to test.
+ * @param filters - Selected filters; empty or missing values are ignored.
+ * @returns `true` when the role matches all provided filters.
+ */
+export function matchesFilters(
+    role: Pick<Job, 'department' | 'location'>,
+    filters: JobFilters,
+): boolean {
+    const departmentMatches = !filters.department || role.department === filters.department;
+    const locationMatches = !filters.location || role.location === filters.location;
+    return departmentMatches && locationMatches;
+}
+
+/**
+ * Filter jobs by department and/or location without mutating the input.
+ *
+ * @param jobs - Jobs to filter.
+ * @param filters - Selected filters; empty or missing values are ignored.
+ * @returns A new array containing only the matching jobs.
+ */
+export function filterJobs(jobs: Job[], filters: JobFilters): Job[] {
+    return jobs.filter((job) => matchesFilters(job, filters));
 }
